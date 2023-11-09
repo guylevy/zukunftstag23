@@ -2,6 +2,9 @@ body {
   background-color:blue;
   color: white;
 }
+img{
+  transition: scale 0.13s;
+}
 img:hover{
   scale: 1.5;
 }
