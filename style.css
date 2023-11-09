@@ -4,11 +4,11 @@ body {
     color: white;
 }
 
-img {
+img.FCZlogo {
     transition: scale 0.13s;
 }
 
-img:hover {
+img.FCZlogo:hover {
     scale: 1.5;
 }
 
