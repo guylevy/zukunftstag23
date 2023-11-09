@@ -1,24 +1,31 @@
 body {
-  text-align:center;
-  background-color:blue;
-  color: white;
-}
-img{
-  transition: scale 0.13s;
-}
-img:hover{
-  scale: 1.5;
-}
-table{
-  width:100%;
+    text-align: center;
+    background-color: blue;
+    color: white;
 }
 
-th,td{
-  padding:12px;
+img {
+    transition: scale 0.13s;
 }
-thead th{
-  background-color:black
+
+img:hover {
+    scale: 1.5;
 }
-tbody tr:even td{
-background-color: yellow  
+
+table {
+    width: 100%;
+}
+
+th,
+td {
+    padding: 12px;
+}
+
+thead th {
+    background-color: black
+}
+
+tbody tr:nth-child(odd) td {
+    background-color: gray;
+    color: black;
 }
