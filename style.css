@@ -9,3 +9,16 @@ img{
 img:hover{
   scale: 1.5;
 }
+table{
+  width:100%;
+}
+
+th,td{
+  padding:12px;
+}
+thead th{
+  background-color:black
+}
+tbody tr:even td{
+background-color: yellow  
+}
