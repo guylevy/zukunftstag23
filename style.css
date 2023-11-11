@@ -44,5 +44,5 @@ summary{
 #videoLink{
     font-size:30px;
     color: #ffffff;
-    text-decoration: none;
+    text-decoration: underline overline;
 }
