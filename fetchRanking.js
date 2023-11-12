@@ -13,7 +13,7 @@ fetch('https://sfl.ch/de/cssl_ranking')
     const doc = parser.parseFromString(html, 'text/html');
 
     // Locate the table element on the page (you may need to inspect the page's structure)
-    const table = doc.querySelector('.your-table-class'); // Replace with the actual class or selector of the table
+    const table = doc.querySelector('.osw-w-full osw-border-separate osw-border-spacing-y-2 osw-text-sm osw-font-light'); // Replace with the actual class or selector of the table
 
     if (table) {
       // Access and manipulate the table data as needed
