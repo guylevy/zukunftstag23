@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Block Man</title>
+    <title>Motorbike Game</title>
     <style>
         body {
             margin: 0;
@@ -61,7 +61,8 @@
             height: 30,
             speed: 5,
             dx: 0,
-            dy: 0
+            dy: 0,
+            alive: true
         };
 
         const coins = [
@@ -83,8 +84,10 @@
         });
 
         function drawMotorbike() {
-            ctx.fillStyle = "blue";
-            ctx.fillRect(motorbike.x, motorbike.y, motorbike.width, motorbike.height);
+            if (motorbike.alive) {
+                ctx.fillStyle = "blue";
+                ctx.fillRect(motorbike.x, motorbike.y, motorbike.width, motorbike.height);
+            }
         }
 
         function drawCoins() {
@@ -136,7 +139,7 @@
                     motorbike.y < obstacle.y + obstacle.height &&
                     motorbike.y + motorbike.height > obstacle.y
                 ) {
-                    gameOver(); // Aufruf der gameOver-Funktion
+                    gameOver();
                 }
             });
         }
@@ -153,8 +156,15 @@
                     coin.collected = true;
                     score++;
                     document.getElementById("score").innerText = `Score: ${score}`;
+                    respawnCoin(coin);
                 }
             });
+        }
+
+        function respawnCoin(coin) {
+            coin.x = Math.random() * (canvas.width - 10) + 5;
+            coin.y = Math.random() * (canvas.height - 10) + 5;
+            coin.collected = false;
         }
 
         function updateObstacles() {
@@ -172,18 +182,21 @@
         }
 
         function updateCanvas() {
-            clearCanvas();
-            drawMotorbike();
-            drawCoins();
-            drawObstacles();
-            newPos();
-            checkCollision();
-            collectCoin();
-            updateObstacles();
-            requestAnimationFrame(updateCanvas);
+            if (motorbike.alive) {
+                clearCanvas();
+                drawMotorbike();
+                drawCoins();
+                drawObstacles();
+                newPos();
+                checkCollision();
+                collectCoin();
+                updateObstacles();
+                requestAnimationFrame(updateCanvas);
+            }
         }
 
         function gameOver() {
+            motorbike.alive = false;
             gameOverModal.style.display = 'block';
         }
 
@@ -193,26 +206,30 @@
         document.addEventListener('keyup', keyUp);
 
         function keyDown(e) {
-            if (e.key === "ArrowRight" || e.key === "Right") {
-                motorbike.dx = motorbike.speed;
-            } else if (e.key === "ArrowLeft" || e.key === "Left") {
-                motorbike.dx = -motorbike.speed;
-            } else if (e.key === "ArrowUp" || e.key === "Up") {
-                motorbike.dy = -motorbike.speed;
-            } else if (e.key === "ArrowDown" || e.key === "Down") {
-                motorbike.dy = motorbike.speed;
+            if (motorbike.alive) {
+                if (e.key === "ArrowRight" || e.key === "Right") {
+                    motorbike.dx = motorbike.speed;
+                } else if (e.key === "ArrowLeft" || e.key === "Left") {
+                    motorbike.dx = -motorbike.speed;
+                } else if (e.key === "ArrowUp" || e.key === "Up") {
+                    motorbike.dy = -motorbike.speed;
+                } else if (e.key === "ArrowDown" || e.key === "Down") {
+                    motorbike.dy = motorbike.speed;
+                }
             }
         }
 
         function keyUp(e) {
-            if (
-                e.key === "ArrowRight" || e.key === "Right" ||
-                e.key === "ArrowLeft" || e.key === "Left" ||
-                e.key === "ArrowUp" || e.key === "Up" ||
-                e.key === "ArrowDown" || e.key === "Down"
-            ) {
-                motorbike.dx = 0;
-                motorbike.dy = 0;
+            if (motorbike.alive) {
+                if (
+                    e.key === "ArrowRight" || e.key === "Right" ||
+                    e.key === "ArrowLeft" || e.key === "Left" ||
+                    e.key === "ArrowUp" || e.key === "Up" ||
+                    e.key === "ArrowDown" || e.key === "Down"
+                ) {
+                    motorbike.dx = 0;
+                    motorbike.dy = 0;
+                }
             }
         }
 
