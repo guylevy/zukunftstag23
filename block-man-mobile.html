@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Motorbike Game</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #87CEEB;
+        }
+        canvas {
+            border: 1px solid black;
+        }
+        #score {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            font-size: 20px;
+            font-family: Arial, sans-serif;
+        }
+        #joystick-container {
+            position: absolute;
+            bottom: 50px;
+            left: 50px;
+            width: 100px;
+            height: 100px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 50%;
+            touch-action: none; /* Prevent default touch actions */
+        }
+        #joystick {
+            position: absolute;
+            width: 60px;
+            height: 60px;
+            background: rgba(0, 0, 0, 0.7);
+            border-radius: 50%;
+            top: 20px;
+            left: 20px;
+        }
+        #gameOverModal {
+            display: none;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: white;
+            padding: 20px;
+            border: 1px solid black;
+            text-align: center;
+            z-index: 1000;
+        }
+        #gameOverModal button {
+            padding: 10px 20px;
+            font-size: 16px;
+        }
+    </style>
+</head>
+<body>
+    <div id="score">Score: 0</div>
+    <canvas id="gameCanvas" width="800" height="400"></canvas>
+    <div id="joystick-container">
+        <div id="joystick"></div>
+    </div>
+    <div id="gameOverModal">
+        <p>Game Over</p>
+        <button id="retryButton">Retry</button>
+    </div>
+
+    <script>
+        const canvas = document.getElementById("gameCanvas");
+        const ctx = canvas.getContext("2d");
+
+        const motorbike = {
+            x: canvas.width / 2 - 25,
+            y: canvas.height - 60,
+            width: 50,
+            height: 30,
+            speed: 5,
+            dx: 0,
+            dy: 0
+        };
+
+        const coins = [
+            { x: 200, y: 100, radius: 5, collected: false },
+            { x: 400, y: 150, radius: 5, collected: false },
+            { x: 600, y: 200, radius: 5, collected: false }
+        ];
+
+        const obstacles = [
+            { x: 100, y: 100, width: 30, height: 30, speedX: 2, speedY: 1 },
+            { x: 500, y: 200, width: 40, height: 40, speedX: -1, speedY: 2 }
+        ];
+
+        const joystickContainer = document.getElementById("joystick-container");
+        const joystick = document.getElementById("joystick");
+        const gameOverModal = document.getElementById("gameOverModal");
+        const retryButton = document.getElementById("retryButton");
+
+        retryButton.addEventListener('click', () => {
+            window.location.reload();
+        });
+
+        let joystickActive = false;
+        let joystickStartX, joystickStartY;
+
+        joystickContainer.addEventListener('touchstart', (e) => {
+            joystickActive = true;
+            const touch = e.touches[0];
+            joystickStartX = touch.clientX;
+            joystickStartY = touch.clientY;
+        });
+
+        joystickContainer.addEventListener('touchmove', (e) => {
+            if (!joystickActive) return;
+            const touch = e.touches[0];
+            let dx = touch.clientX - joystickStartX;
+            let dy = touch.clientY - joystickStartY;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+            const maxDistance = 40; // Maximum distance the joystick can move
+            const angle = Math.atan2(dy, dx);
+
+            if (distance > maxDistance) {
+                dx = Math.cos(angle) * maxDistance;
+                dy = Math.sin(angle) * maxDistance;
+            }
+
+            joystick.style.transform = `translate(${dx}px, ${dy}px)`;
+
+            motorbike.dx = (dx / maxDistance) * motorbike.speed;
+            motorbike.dy = (dy / maxDistance) * motorbike.speed;
+        });
+
+        joystickContainer.addEventListener('touchend', () => {
+            joystickActive = false;
+            joystick.style.transform = 'translate(0, 0)';
+            motorbike.dx = 0;
+            motorbike.dy = 0;
+        });
+
+        function drawMotorbike() {
+            ctx.fillStyle = "blue";
+            ctx.fillRect(motorbike.x, motorbike.y, motorbike.width, motorbike.height);
+        }
+
+        function drawCoins() {
+            ctx.fillStyle = "gold";
+            coins.forEach(coin => {
+                if (!coin.collected) {
+                    ctx.beginPath();
+                    ctx.arc(coin.x, coin.y, coin.radius, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.closePath();
+                }
+            });
+        }
+
+        function drawObstacles() {
+            ctx.fillStyle = "red";
+            obstacles.forEach(obstacle => {
+                ctx.fillRect(obstacle.x, obstacle.y, obstacle.width, obstacle.height);
+            });
+        }
+
+        function clearCanvas() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+        }
+
+        function newPos() {
+            motorbike.x += motorbike.dx;
+            motorbike.y += motorbike.dy;
+
+            if (motorbike.x < 0) {
+                motorbike.x = 0;
+            }
+            if (motorbike.x + motorbike.width > canvas.width) {
+                motorbike.x = canvas.width - motorbike.width;
+            }
+            if (motorbike.y < 0) {
+                motorbike.y = 0;
+            }
+            if (motorbike.y + motorbike.height > canvas.height) {
+                motorbike.y = canvas.height - motorbike.height;
+            }
+        }
+
+        function checkCollision() {
+            obstacles.forEach(obstacle => {
+                if (
+                    motorbike.x < obstacle.x + obstacle.width &&
+                    motorbike.x + motorbike.width > obstacle.x &&
+                    motorbike.y < obstacle.y + obstacle.height &&
+                    motorbike.y + motorbike.height > obstacle.y
+                ) {
+                    gameOver(); // Aufruf der gameOver-Funktion
+                }
+            });
+        }
+
+        function collectCoin() {
+            coins.forEach(coin => {
+                if (
+                    motorbike.x < coin.x + coin.radius &&
+                    motorbike.x + motorbike.width > coin.x - coin.radius &&
+                    motorbike.y < coin.y + coin.radius &&
+                    motorbike.y + motorbike.height > coin.y - coin.radius &&
+                    !coin.collected
+                ) {
+                    coin.collected = true;
+                    score++;
+                    document.getElementById("score").innerText = `Score: ${score}`;
+                }
+            });
+        }
+
+        function updateObstacles() {
+            obstacles.forEach(obstacle => {
+                obstacle.x += obstacle.speedX;
+                obstacle.y += obstacle.speedY;
+
+                if (obstacle.x <= 0 || obstacle.x + obstacle.width >= canvas.width) {
+                    obstacle.speedX *= -1;
+                }
+                if (obstacle.y <= 0 || obstacle.y + obstacle.height >= canvas.height) {
+                    obstacle.speedY *= -1;
+                }
+            });
+        }
+
+        function updateCanvas() {
+            clearCanvas();
+            drawMotorbike();
+            drawCoins();
+            drawObstacles();
+            newPos();
+            checkCollision();
+            collectCoin();
+            updateObstacles();
+            requestAnimationFrame(updateCanvas);
+        }
+
+        function gameOver() {
+            gameOverModal.style.display = 'block';
+        }
+
+        let score = 0;
+
+        document.addEventListener('keydown', keyDown);
+        document.addEventListener('keyup', keyUp);
+
+        function keyDown(e) {
+            if (e.key === "ArrowRight" || e.key === "Right") {
+                motorbike.dx = motorbike.speed;
+            } else if (e.key === "ArrowLeft" || e.key === "Left") {
+                motorbike.dx = -motorbike.speed;
+            } else if (e.key === "ArrowUp" || e.key === "Up") {
+                motorbike.dy = -motorbike.speed;
+            } else if (e.key === "ArrowDown" || e.key === "Down") {
+                motorbike.dy = motorbike.speed;
+            }
+        }
+
+        function keyUp(e) {
+            if (
+                e.key === "ArrowRight" || e.key === "Right" ||
+                e.key === "ArrowLeft" || e.key === "Left" ||
+                e.key === "ArrowUp" || e.key === "Up" ||
+                e.key === "ArrowDown" || e.key === "Down"
+            ) {
+                motorbike.dx = 0;
+                motorbike.dy = 0;
+            }
+        }
+
+        updateCanvas();
+    </script>
+</body>
+</html>
