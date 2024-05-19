@@ -15,7 +15,6 @@
             background-color: #87CEEB;
         }
         canvas {
-            background: url('https://www.transparenttextures.com/patterns/forest-floor.png') repeat;
             border: 1px solid black;
         }
         #score {
@@ -25,11 +24,31 @@
             font-size: 20px;
             font-family: Arial, sans-serif;
         }
+        #gameOverModal {
+            display: none;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: white;
+            padding: 20px;
+            border: 1px solid black;
+            text-align: center;
+            z-index: 1000;
+        }
+        #gameOverModal button {
+            padding: 10px 20px;
+            font-size: 16px;
+        }
     </style>
 </head>
 <body>
     <div id="score">Score: 0</div>
     <canvas id="gameCanvas" width="800" height="400"></canvas>
+    <div id="gameOverModal">
+        <p>Game Over</p>
+        <button id="retryButton">Retry</button>
+    </div>
 
     <script>
         const canvas = document.getElementById("gameCanvas");
@@ -42,14 +61,9 @@
             height: 30,
             speed: 5,
             dx: 0,
-            dy: 0,
-            isSuper: false
+            dy: 0
         };
 
-        let score = 0;
-        let blueCoin = null;
-        let blueCoinActive = false;
-        let blueCoinTimeout;
         const coins = [
             { x: 200, y: 100, radius: 5, collected: false },
             { x: 400, y: 150, radius: 5, collected: false },
@@ -57,9 +71,16 @@
         ];
 
         const obstacles = [
-            { x: 100, y: 100, width: 30, height: 30, speedX: 2, speedY: 1, active: true },
-            { x: 500, y: 200, width: 40, height: 40, speedX: -1, speedY: 2, active: true }
+            { x: 100, y: 100, width: 30, height: 30, speedX: 2, speedY: 1 },
+            { x: 500, y: 200, width: 40, height: 40, speedX: -1, speedY: 2 }
         ];
+
+        const gameOverModal = document.getElementById("gameOverModal");
+        const retryButton = document.getElementById("retryButton");
+
+        retryButton.addEventListener('click', () => {
+            window.location.reload();
+        });
 
         function drawMotorbike() {
             ctx.fillStyle = "blue";
@@ -81,20 +102,8 @@
         function drawObstacles() {
             ctx.fillStyle = "red";
             obstacles.forEach(obstacle => {
-                if (obstacle.active) {
-                    ctx.fillRect(obstacle.x, obstacle.y, obstacle.width, obstacle.height);
-                }
+                ctx.fillRect(obstacle.x, obstacle.y, obstacle.width, obstacle.height);
             });
-        }
-
-        function drawBlueCoin() {
-            if (blueCoin) {
-                ctx.fillStyle = "darkblue";
-                ctx.beginPath();
-                ctx.arc(blueCoin.x, blueCoin.y, blueCoin.radius, 0, Math.PI * 2);
-                ctx.fill();
-                ctx.closePath();
-            }
         }
 
         function clearCanvas() {
@@ -119,67 +128,15 @@
             }
         }
 
-        function moveRight() {
-            motorbike.dx = motorbike.speed;
-        }
-
-        function moveLeft() {
-            motorbike.dx = -motorbike.speed;
-        }
-
-        function moveUp() {
-            motorbike.dy = -motorbike.speed;
-        }
-
-        function moveDown() {
-            motorbike.dy = motorbike.speed;
-        }
-
-        function keyDown(e) {
-            if (e.key === 'ArrowRight') {
-                moveRight();
-            } else if (e.key === 'ArrowLeft') {
-                moveLeft();
-            } else if (e.key === 'ArrowUp') {
-                moveUp();
-            } else if (e.key === 'ArrowDown') {
-                moveDown();
-            }
-        }
-
-        function keyUp(e) {
-            if (
-                e.key === 'ArrowRight' ||
-                e.key === 'ArrowLeft' ||
-                e.key === 'ArrowUp' ||
-                e.key === 'ArrowDown'
-            ) {
-                motorbike.dx = 0;
-                motorbike.dy = 0;
-            }
-        }
-
         function checkCollision() {
             obstacles.forEach(obstacle => {
                 if (
                     motorbike.x < obstacle.x + obstacle.width &&
                     motorbike.x + motorbike.width > obstacle.x &&
                     motorbike.y < obstacle.y + obstacle.height &&
-                    motorbike.y + motorbike.height > obstacle.y &&
-                    obstacle.active
+                    motorbike.y + motorbike.height > obstacle.y
                 ) {
-                    if (motorbike.isSuper) {
-                        obstacle.active = false;
-                        score += 5;
-                        document.getElementById("score").innerText = `Score: ${score}`;
-                        setTimeout(() => {
-                            obstacle.x = Math.random() * (canvas.width - obstacle.width);
-                            obstacle.y = Math.random() * (canvas.height - obstacle.height);
-                            obstacle.active = true;
-                        }, 5000);
-                    } else {
-                        gameOver();
-                    }
+                    gameOver(); // Aufruf der gameOver-Funktion
                 }
             });
         }
@@ -196,67 +153,22 @@
                     coin.collected = true;
                     score++;
                     document.getElementById("score").innerText = `Score: ${score}`;
-                    const newX = Math.random() * canvas.width;
-                    const newY = Math.random() * canvas.height;
-                    coins.push({
-                        x: newX,
-                        y: newY,
-                        radius: 5,
-                        collected: false
-                    });
                 }
             });
-
-            if (blueCoin && !blueCoinActive && motorbike.x < blueCoin.x + blueCoin.radius &&
-                motorbike.x + motorbike.width > blueCoin.x - blueCoin.radius &&
-                motorbike.y < blueCoin.y + blueCoin.radius &&
-                motorbike.y + motorbike.height > blueCoin.y - blueCoin.radius) {
-                blueCoinActive = true;
-                motorbike.isSuper = true;
-                motorbike.width *= 1.5
-                ;
-                motorbike.height *= 1.5;
-                clearTimeout(blueCoinTimeout); // Stoppe den Timer für das Verschwinden
-                blueCoin = null; // Setze die blaue Münze zurück
-                blueCoinTimeout = setTimeout(() => {
-                    blueCoinActive = false; // Setze den Status der blauen Münze zurück
-                    motorbike.isSuper = false; // Setze den Superstatus des Motorrades zurück
-                    motorbike.width /= 1.5; // Setze die Größe des Motorrades zurück
-                    motorbike.height /= 1.5;
-                    generateBlueCoin(); // Generiere eine neue blaue Münze
-                }, 45000);
-            }
         }
 
         function updateObstacles() {
             obstacles.forEach(obstacle => {
-                if (obstacle.active) {
-                    obstacle.x += obstacle.speedX;
-                    obstacle.y += obstacle.speedY;
+                obstacle.x += obstacle.speedX;
+                obstacle.y += obstacle.speedY;
 
-                    if (obstacle.x <= 0 || obstacle.x + obstacle.width >= canvas.width) {
-                        obstacle.speedX *= -1;
-                    }
-                    if (obstacle.y <= 0 || obstacle.y + obstacle.height >= canvas.height) {
-                        obstacle.speedY *= -1;
-                    }
+                if (obstacle.x <= 0 || obstacle.x + obstacle.width >= canvas.width) {
+                    obstacle.speedX *= -1;
+                }
+                if (obstacle.y <= 0 || obstacle.y + obstacle.height >= canvas.height) {
+                    obstacle.speedY *= -1;
                 }
             });
-        }
-
-        function generateBlueCoin() {
-            if (!blueCoin) {
-                const x = Math.random() * (canvas.width - 20) + 10;
-                const y = Math.random() * (canvas.height - 20) + 10;
-                blueCoin = { x, y, radius: 10 };
-            }
-        }
-
-        function scheduleBlueCoin() {
-            blueCoinTimeout = setTimeout(() => {
-                generateBlueCoin();
-                blueCoinActive = false;
-            }, 45000);
         }
 
         function updateCanvas() {
@@ -264,7 +176,6 @@
             drawMotorbike();
             drawCoins();
             drawObstacles();
-            drawBlueCoin();
             newPos();
             checkCollision();
             collectCoin();
@@ -272,10 +183,39 @@
             requestAnimationFrame(updateCanvas);
         }
 
+        function gameOver() {
+            gameOverModal.style.display = 'block';
+        }
+
+        let score = 0;
+
         document.addEventListener('keydown', keyDown);
         document.addEventListener('keyup', keyUp);
 
-        scheduleBlueCoin();
+        function keyDown(e) {
+            if (e.key === "ArrowRight" || e.key === "Right") {
+                motorbike.dx = motorbike.speed;
+            } else if (e.key === "ArrowLeft" || e.key === "Left") {
+                motorbike.dx = -motorbike.speed;
+            } else if (e.key === "ArrowUp" || e.key === "Up") {
+                motorbike.dy = -motorbike.speed;
+            } else if (e.key === "ArrowDown" || e.key === "Down") {
+                motorbike.dy = motorbike.speed;
+            }
+        }
+
+        function keyUp(e) {
+            if (
+                e.key === "ArrowRight" || e.key === "Right" ||
+                e.key === "ArrowLeft" || e.key === "Left" ||
+                e.key === "ArrowUp" || e.key === "Up" ||
+                e.key === "ArrowDown" || e.key === "Down"
+            ) {
+                motorbike.dx = 0;
+                motorbike.dy = 0;
+            }
+        }
+
         updateCanvas();
     </script>
 </body>
