@@ -40,10 +40,18 @@
             padding: 10px 20px;
             font-size: 16px;
         }
+        #powerUpTimer {
+            position: absolute;
+            top: 40px;
+            left: 10px;
+            font-size: 20px;
+            font-family: Arial, sans-serif;
+        }
     </style>
 </head>
 <body>
     <div id="score">Score: 0</div>
+    <div id="powerUpTimer"></div>
     <canvas id="gameCanvas" width="800" height="400"></canvas>
     <div id="gameOverModal">
         <p>Game Over</p>
@@ -62,7 +70,9 @@
             speed: 5,
             dx: 0,
             dy: 0,
-            alive: true
+            alive: true,
+            hasPowerUp: false,
+            powerUpTime: 0
         };
 
         const coins = [
@@ -71,9 +81,17 @@
             { x: 600, y: 200, radius: 5, collected: false }
         ];
 
+        const darkBlueCoin = {
+            x: Math.random() * (canvas.width - 10) + 5,
+            y: Math.random() * (canvas.height - 10) + 5,
+            radius: 5,
+            collected: false,
+            visible: false
+        };
+
         const obstacles = [
-            { x: 100, y: 100, width: 30, height: 30, speedX: 2, speedY: 1 },
-            { x: 500, y: 200, width: 40, height: 40, speedX: -1, speedY: 2 }
+            { x: 100, y: 100, width: 30, height: 30, speedX: 2, speedY: 1, respawnTime: 0 },
+            { x: 500, y: 200, width: 40, height: 40, speedX: -1, speedY: 2, respawnTime: 0 }
         ];
 
         const gameOverModal = document.getElementById("gameOverModal");
@@ -102,10 +120,22 @@
             });
         }
 
+        function drawDarkBlueCoin() {
+            if (darkBlueCoin.visible && !darkBlueCoin.collected) {
+                ctx.fillStyle = "darkblue";
+                ctx.beginPath();
+                ctx.arc(darkBlueCoin.x, darkBlueCoin.y, darkBlueCoin.radius, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.closePath();
+            }
+        }
+
         function drawObstacles() {
             ctx.fillStyle = "red";
             obstacles.forEach(obstacle => {
-                ctx.fillRect(obstacle.x, obstacle.y, obstacle.width, obstacle.height);
+                if (Date.now() > obstacle.respawnTime) {
+                    ctx.fillRect(obstacle.x, obstacle.y, obstacle.width, obstacle.height);
+                }
             });
         }
 
@@ -133,13 +163,21 @@
 
         function checkCollision() {
             obstacles.forEach(obstacle => {
-                if (
-                    motorbike.x < obstacle.x + obstacle.width &&
-                    motorbike.x + motorbike.width > obstacle.x &&
-                    motorbike.y < obstacle.y + obstacle.height &&
-                    motorbike.y + motorbike.height > obstacle.y
-                ) {
-                    gameOver();
+                if (Date.now() > obstacle.respawnTime) {
+                    if (
+                        motorbike.x < obstacle.x + obstacle.width &&
+                        motorbike.x + motorbike.width > obstacle.x &&
+                        motorbike.y < obstacle.y + obstacle.height &&
+                        motorbike.y + motorbike.height > obstacle.y
+                    ) {
+                        if (motorbike.hasPowerUp) {
+                            obstacle.respawnTime = Date.now() + 2000;  // Hindernis für 2 Sekunden verschwinden lassen
+                            score += 5;
+                            document.getElementById("score").innerText = `Score: ${score}`;
+                        } else {
+                            gameOver();
+                        }
+                    }
                 }
             });
         }
@@ -159,6 +197,20 @@
                     respawnCoin(coin);
                 }
             });
+
+            if (
+                motorbike.x < darkBlueCoin.x + darkBlueCoin.radius &&
+                motorbike.x + motorbike.width > darkBlueCoin.x - darkBlueCoin.radius &&
+                motorbike.y < darkBlueCoin.y + darkBlueCoin.radius &&
+                motorbike.y + motorbike.height > darkBlueCoin.y - darkBlueCoin.radius &&
+                !darkBlueCoin.collected && darkBlueCoin.visible
+            ) {
+                darkBlueCoin.collected = true;
+                motorbike.hasPowerUp = true;
+                motorbike.powerUpTime = Date.now() + 10000;  // Superkraft für 10 Sekunden aktivieren
+                updatePowerUpTimer();
+                darkBlueCoin.visible = false;
+            }
         }
 
         function respawnCoin(coin) {
@@ -169,14 +221,16 @@
 
         function updateObstacles() {
             obstacles.forEach(obstacle => {
-                obstacle.x += obstacle.speedX;
-                obstacle.y += obstacle.speedY;
+                if (Date.now() > obstacle.respawnTime) {
+                    obstacle.x += obstacle.speedX;
+                    obstacle.y += obstacle.speedY;
 
-                if (obstacle.x <= 0 || obstacle.x + obstacle.width >= canvas.width) {
-                    obstacle.speedX *= -1;
-                }
-                if (obstacle.y <= 0 || obstacle.y + obstacle.height >= canvas.height) {
-                    obstacle.speedY *= -1;
+                    if (obstacle.x <= 0 || obstacle.x + obstacle.width >= canvas.width) {
+                        obstacle.speedX *= -1;
+                    }
+                    if (obstacle.y <= 0 || obstacle.y + obstacle.height >= canvas.height) {
+                        obstacle.speedY *= -1;
+                    }
                 }
             });
         }
@@ -186,6 +240,7 @@
                 clearCanvas();
                 drawMotorbike();
                 drawCoins();
+                drawDarkBlueCoin();
                 drawObstacles();
                 newPos();
                 checkCollision();
@@ -199,6 +254,24 @@
             motorbike.alive = false;
             gameOverModal.style.display = 'block';
         }
+
+        function updatePowerUpTimer() {
+            const timerElement = document.getElementById("powerUpTimer");
+            const interval = setInterval(() => {
+                const timeLeft = Math.max(0, Math.ceil((motorbike.powerUpTime - Date.now()) / 1000));
+                timerElement.innerText = `Power-Up: ${timeLeft}s`;
+
+                if (timeLeft <= 0) {
+                    motorbike.hasPowerUp = false;
+                    clearInterval(interval);
+                    timerElement.innerText = "";
+                }
+            }, 1000);
+        }
+
+        setTimeout(() => {
+            darkBlueCoin.visible = true;
+        }, 30000);  // Dunkelblaue Münze nach 30 Sekunden anzeigen
 
         let score = 0;
 
