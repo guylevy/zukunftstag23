@@ -55,6 +55,24 @@
             padding: 10px 20px;
             z-index: 1000;
         }
+        #levelSelectionModal {
+            display: flex;
+            flex-direction: column;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: white;
+            padding: 20px;
+            border: 1px solid black;
+            text-align: center;
+            z-index: 1000;
+        }
+        #levelSelectionModal button {
+            margin: 5px;
+            padding: 10px 20px;
+            font-size: 16px;
+        }
     </style>
 </head>
 <body>
@@ -66,30 +84,35 @@
         <button id="retryButton">Retry</button>
     </div>
     <button id="fullscreenButton">Fullscreen</button>
+    <div id="levelSelectionModal">
+        <p>Wähle ein Level</p>
+        <button onclick="startGame(1)">Level 1</button>
+        <button onclick="startGame(2)">Level 2</button>
+        <button onclick="startGame(3)">Level 3</button>
+        <button onclick="startGame(4)">Level 4</button>
+        <button onclick="startGame(5)">Level 5</button>
+    </div>
 
     <script>
         const canvas = document.getElementById("gameCanvas");
         const ctx = canvas.getContext("2d");
-
         const motorbike = {
             x: canvas.width / 2 - 25,
             y: canvas.height - 60,
             width: 50,
             height: 30,
-            speed: 7,  // Geschwindigkeit erhöht
+            speed: 7,
             dx: 0,
             dy: 0,
             alive: true,
             hasPowerUp: false,
             powerUpTime: 0
         };
-
         const coins = [
             { x: 200, y: 100, radius: 5, collected: false },
             { x: 400, y: 150, radius: 5, collected: false },
             { x: 600, y: 200, radius: 5, collected: false }
         ];
-
         const darkBlueCoin = {
             x: Math.random() * (canvas.width - 10) + 5,
             y: Math.random() * (canvas.height - 10) + 5,
@@ -97,15 +120,12 @@
             collected: false,
             visible: false
         };
-
-        const obstacles = [
-            { x: 100, y: 100, width: 30, height: 30, speedX: 3, speedY: 2, respawnTime: 0 },  // Geschwindigkeit erhöht
-            { x: 500, y: 200, width: 40, height: 40, speedX: -2, speedY: 3, respawnTime: 0 }  // Geschwindigkeit erhöht
-        ];
+        let obstacles = [];
 
         const gameOverModal = document.getElementById("gameOverModal");
         const retryButton = document.getElementById("retryButton");
         const fullscreenButton = document.getElementById("fullscreenButton");
+        const levelSelectionModal = document.getElementById("levelSelectionModal");
 
         retryButton.addEventListener('click', () => {
             window.location.reload();
@@ -120,6 +140,28 @@
                 document.exitFullscreen();
             }
         });
+
+        function startGame(level) {
+            levelSelectionModal.style.display = 'none';
+            generateObstacles(level);
+            updateCanvas();
+        }
+
+        function generateObstacles(level) {
+            obstacles = [];
+            for (let i = 0; i < level; i++) {
+                const obstacle = {
+                    x: Math.random() * (canvas.width - 40),
+                    y: Math.random() * (canvas.height - 40),
+                    width: 30 + (i * 2),
+                    height: 30 + (i * 2),
+                    speedX: 2 + (i * 0.5),
+                    speedY: 2 + (i * 0.5),
+                    respawnTime: 0
+                };
+                obstacles.push(obstacle);
+            }
+        }
 
         function drawMotorbike() {
             if (motorbike.alive) {
@@ -191,7 +233,7 @@
                         motorbike.y + motorbike.height > obstacle.y
                     ) {
                         if (motorbike.hasPowerUp) {
-                            obstacle.respawnTime = Date.now() + 2000;  // Hindernis für 2 Sekunden verschwinden lassen
+                            obstacle.respawnTime = Date.now() + 2000;
                             score += 5;
                             document.getElementById("score").innerText = `Score: ${score}`;
                         } else {
@@ -226,6 +268,7 @@
                 !darkBlueCoin.collected && darkBlueCoin.visible
             ) {
                 darkBlueCoin.collected = true;
+                motorbike
                 motorbike.hasPowerUp = true;
                 motorbike.powerUpTime = Date.now() + 10000;  // Superkraft für 10 Sekunden aktivieren
                 updatePowerUpTimer();
@@ -326,7 +369,7 @@
             }
         }
 
-        updateCanvas();
+        levelSelectionModal.style.display = 'flex';
     </script>
 </body>
 </html>
