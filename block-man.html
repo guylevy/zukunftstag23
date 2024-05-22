@@ -73,6 +73,16 @@
             padding: 10px 20px;
             font-size: 16px;
         }
+        #countdown {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 48px;
+            font-family: Arial, sans-serif;
+            z-index: 1000;
+            display: none;
+        }
     </style>
 </head>
 <body>
@@ -86,12 +96,13 @@
     <button id="fullscreenButton">Fullscreen</button>
     <div id="levelSelectionModal">
         <p>Wähle ein Level</p>
-        <button onclick="startGame(1)">Level 1</button>
-        <button onclick="startGame(2)">Level 2</button>
-        <button onclick="startGame(3)">Level 3</button>
-        <button onclick="startGame(4)">Level 4</button>
-        <button onclick="startGame(5)">Level 5</button>
+        <button onclick="startCountdown(1)">Level 1</button>
+        <button onclick="startCountdown(2)">Level 2</button>
+        <button onclick="startCountdown(3)">Level 3</button>
+        <button onclick="startCountdown(4)">Level 4</button>
+        <button onclick="startCountdown(5)">Level 5</button>
     </div>
+    <div id="countdown">3</div>
 
     <script>
         const canvas = document.getElementById("gameCanvas");
@@ -121,11 +132,13 @@
             visible: false
         };
         let obstacles = [];
+        let gameStarted = false;
 
         const gameOverModal = document.getElementById("gameOverModal");
         const retryButton = document.getElementById("retryButton");
         const fullscreenButton = document.getElementById("fullscreenButton");
         const levelSelectionModal = document.getElementById("levelSelectionModal");
+        const countdownElement = document.getElementById("countdown");
 
         retryButton.addEventListener('click', () => {
             window.location.reload();
@@ -141,10 +154,24 @@
             }
         });
 
-        function startGame(level) {
+        function startCountdown(level) {
             levelSelectionModal.style.display = 'none';
             generateObstacles(level);
-            updateCanvas();
+            drawStaticElements();
+            let countdown = 3;
+            countdownElement.style.display = 'block';
+            countdownElement.innerText = countdown;
+            const countdownInterval = setInterval(() => {
+                countdown--;
+                if (countdown > 0) {
+                    countdownElement.innerText = countdown;
+                } else {
+                    clearInterval(countdownInterval);
+                    countdownElement.style.display = 'none';
+                    gameStarted = true;
+                    updateCanvas();
+                }
+            }, 1000);
         }
 
         function generateObstacles(level) {
@@ -268,9 +295,8 @@
                 !darkBlueCoin.collected && darkBlueCoin.visible
             ) {
                 darkBlueCoin.collected = true;
-                motorbike
                 motorbike.hasPowerUp = true;
-                motorbike.powerUpTime = Date.now() + 10000;  // Superkraft für 10 Sekunden aktivieren
+                motorbike.powerUpTime = Date.now() + 10000;
                 updatePowerUpTimer();
                 darkBlueCoin.visible = false;
             }
@@ -334,7 +360,7 @@
 
         setTimeout(() => {
             darkBlueCoin.visible = true;
-        }, 30000);  // Dunkelblaue Münze nach 30 Sekunden anzeigen
+        }, 30000);
 
         let score = 0;
 
@@ -367,6 +393,14 @@
                     motorbike.dy = 0;
                 }
             }
+        }
+
+        function drawStaticElements() {
+            clearCanvas();
+            drawMotorbike();
+            drawCoins();
+            drawDarkBlueCoin();
+            drawObstacles();
         }
 
         levelSelectionModal.style.display = 'flex';
