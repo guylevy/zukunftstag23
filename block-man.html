@@ -17,12 +17,15 @@
         canvas {
             border: 1px solid black;
         }
-        #score {
+        #score, #coins {
             position: absolute;
             top: 10px;
             left: 10px;
             font-size: 20px;
             font-family: Arial, sans-serif;
+        }
+        #coins {
+            left: 150px;
         }
         #gameOverModal {
             display: none;
@@ -83,10 +86,29 @@
             z-index: 1000;
             display: none;
         }
+        #itemShopModal, #colorSelectionModal {
+            display: none;
+            flex-direction: column;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: white;
+            padding: 20px;
+            border: 1px solid black;
+            text-align: center;
+            z-index: 1000;
+        }
+        #itemShopModal button, #colorSelectionModal button {
+            margin: 5px;
+            padding: 10px 20px;
+            font-size: 16px;
+        }
     </style>
 </head>
 <body>
     <div id="score">Score: 0</div>
+    <div id="coins">Coins: 0</div>
     <div id="powerUpTimer"></div>
     <canvas id="gameCanvas" width="800" height="400"></canvas>
     <div id="gameOverModal">
@@ -101,8 +123,27 @@
         <button onclick="startCountdown(3)">Level 3</button>
         <button onclick="startCountdown(4)">Level 4</button>
         <button onclick="startCountdown(5)">Level 5</button>
+        <button onclick="openItemShop()">Item Shop</button>
+        <button onclick="openColorSelection()">Select Color</button>
     </div>
     <div id="countdown">3</div>
+
+    <div id="itemShopModal">
+        <p>Item Shop</p>
+        <select id="colorSelect">
+            <option value="blue">Blue - 5 Coins</option>
+            <option value="red">Red - 10 Coins</option>
+            <option value="green">Green - 15 Coins</option>
+        </select>
+        <button onclick="buyColor()">Buy</button>
+        <button onclick="closeItemShop()">Close</button>
+    </div>
+
+    <div id="colorSelectionModal">
+        <p>Select Motorbike Color</p>
+        <div id="ownedColors"></div>
+        <button onclick="closeColorSelection()">Close</button>
+    </div>
 
     <script>
         const canvas = document.getElementById("gameCanvas");
@@ -117,7 +158,8 @@
             dy: 0,
             alive: true,
             hasPowerUp: false,
-            powerUpTime: 0
+            powerUpTime: 0,
+            color: localStorage.getItem("motorbikeColor") || "blue"
         };
         const coins = [
             { x: 200, y: 100, radius: 5, collected: false },
@@ -133,13 +175,17 @@
         };
         let obstacles = [];
         let gameStarted = false;
+        let coinCount = parseInt(localStorage.getItem("coinCount")) || 0;
 
         const gameOverModal = document.getElementById("gameOverModal");
         const retryButton = document.getElementById("retryButton");
         const fullscreenButton = document.getElementById("fullscreenButton");
         const levelSelectionModal = document.getElementById("levelSelectionModal");
         const countdownElement = document.getElementById("countdown");
-
+        const itemShopModal = document.getElementById("itemShopModal");
+        const colorSelectionModal = document.getElementById("colorSelectionModal");
+        const ownedColors = JSON.parse(localStorage.getItem("ownedColors")) || ["blue"];
+        
         retryButton.addEventListener('click', () => {
             window.location.reload();
         });
@@ -192,7 +238,7 @@
 
         function drawMotorbike() {
             if (motorbike.alive) {
-                ctx.fillStyle = "blue";
+                ctx.fillStyle = motorbike.color;
                 ctx.fillRect(motorbike.x, motorbike.y, motorbike.width, motorbike.height);
             }
         }
@@ -202,7 +248,8 @@
             coins.forEach(coin => {
                 if (!coin.collected) {
                     ctx.beginPath();
-                    ctx.arc(coin.x, coin.y, coin.radius, 0, Math.PI * 2);
+                    ctx.arc(
+                    coin.x, coin.y, coin.radius, 0, Math.PI * 2);
                     ctx.fill();
                     ctx.closePath();
                 }
@@ -281,8 +328,9 @@
                     !coin.collected
                 ) {
                     coin.collected = true;
-                    score++;
-                    document.getElementById("score").innerText = `Score: ${score}`;
+                    coinCount++;
+                    document.getElementById("coins").innerText = `Coins: ${coinCount}`;
+                    localStorage.setItem("coinCount", coinCount);
                     respawnCoin(coin);
                 }
             });
@@ -403,7 +451,71 @@
             drawObstacles();
         }
 
+        function openItemShop() {
+            itemShopModal.style.display = 'flex';
+        }
+
+        function closeItemShop() {
+            itemShopModal.style.display = 'none';
+        }
+
+        function buyColor() {
+            const colorSelect = document.getElementById("colorSelect");
+            const selectedColor = colorSelect.value;
+            let colorCost;
+
+            switch (selectedColor) {
+                case "blue":
+                    colorCost = 5;
+                    break;
+                case "red":
+                    colorCost = 10;
+                    break;
+                case "green":
+                    colorCost = 15;
+                    break;
+                default:
+                    colorCost = 0;
+                    break;
+            }
+
+            if (coinCount >= colorCost && !ownedColors.includes(selectedColor)) {
+                coinCount -= colorCost;
+                ownedColors.push(selectedColor);
+                localStorage.setItem("coinCount", coinCount);
+                localStorage.setItem("ownedColors", JSON.stringify(ownedColors));
+                document.getElementById("coins").innerText = `Coins: ${coinCount}`;
+                alert(`You have bought the ${selectedColor} color!`);
+            } else {
+                alert(`You don't have enough coins or you already own this color.`);
+            }
+        }
+
+        function openColorSelection() {
+            colorSelectionModal.style.display = 'flex';
+            const ownedColorsDiv = document.getElementById("ownedColors");
+            ownedColorsDiv.innerHTML = '';
+            ownedColors.forEach(color => {
+                const colorButton = document.createElement('button');
+                colorButton.innerText = color;
+                colorButton.style.backgroundColor = color;
+                colorButton.addEventListener('click', () => selectColor(color));
+                ownedColorsDiv.appendChild(colorButton);
+            });
+        }
+
+        function closeColorSelection() {
+            colorSelectionModal.style.display = 'none';
+        }
+
+        function selectColor(color) {
+            motorbike.color = color;
+            localStorage.setItem("motorbikeColor", color);
+            closeColorSelection();
+        }
+
         levelSelectionModal.style.display = 'flex';
+        document.getElementById("coins").innerText = `Coins: ${coinCount}`;
     </script>
 </body>
 </html>
